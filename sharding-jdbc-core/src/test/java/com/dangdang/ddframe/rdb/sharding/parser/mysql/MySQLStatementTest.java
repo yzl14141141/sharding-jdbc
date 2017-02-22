@@ -18,9 +18,12 @@
 package com.dangdang.ddframe.rdb.sharding.parser.mysql;
 
 import com.dangdang.ddframe.rdb.sharding.api.fixture.ShardingRuleMockBuilder;
+import com.dangdang.ddframe.rdb.sharding.api.rule.ShardingRule;
 import com.dangdang.ddframe.rdb.sharding.constants.DatabaseType;
 import com.dangdang.ddframe.rdb.sharding.parser.AbstractBaseParseTest;
+import com.dangdang.ddframe.rdb.sharding.parser.SQLParseEngine;
 import com.dangdang.ddframe.rdb.sharding.parser.SQLParserFactory;
+import com.dangdang.ddframe.rdb.sharding.parser.result.SQLParsedResult;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.MergeContext;
 import com.dangdang.ddframe.rdb.sharding.parser.result.router.ConditionContext;
 import com.dangdang.ddframe.rdb.sharding.parser.result.router.Table;
@@ -34,21 +37,24 @@ import java.util.Collections;
 
 @RunWith(Parameterized.class)
 public final class MySQLStatementTest extends AbstractBaseParseTest {
-    
-    public MySQLStatementTest(final String testCaseName, final String sql, final String expectedSQL, 
-            final Collection<Table> expectedTables, final Collection<ConditionContext> expectedConditionContext, final MergeContext expectedMergeContext) {
+
+    public MySQLStatementTest(final String testCaseName, final String sql, final String expectedSQL,
+                              final Collection<Table> expectedTables, final Collection<ConditionContext> expectedConditionContext, final MergeContext expectedMergeContext) {
         super(testCaseName, sql, expectedSQL, expectedTables, expectedConditionContext, expectedMergeContext);
     }
-    
+
     @Parameters(name = "{0}")
     public static Collection<Object[]> dataParameters() {
         return AbstractBaseParseTest.dataParameters("com/dangdang/ddframe/rdb/sharding/parser/mysql/statement/");
     }
-    
+
     @Test
     public void assertParse() {
-        assertSQLParsedResult(SQLParserFactory.create(DatabaseType.MySQL, getSql(), Collections.emptyList(), 
-                new ShardingRuleMockBuilder().addShardingColumns("user_id").addShardingColumns("order_id").addShardingColumns("state")
-                        .addAutoIncrementColumn("order", "order_id").addAutoIncrementColumn("payment", "id").addAutoIncrementColumn("payment", "order_id").build()).parse());
+        String sql = getSql();
+        ShardingRule shardingRule = new ShardingRuleMockBuilder().addShardingColumns("user_id").addShardingColumns("order_id").addShardingColumns("state")
+                .addAutoIncrementColumn("order", "order_id").addAutoIncrementColumn("payment", "id").addAutoIncrementColumn("payment", "order_id").build();
+        SQLParseEngine engine = SQLParserFactory.create(DatabaseType.MySQL, sql, Collections.emptyList(), shardingRule);
+        SQLParsedResult result = engine.parse();
+        assertSQLParsedResult(result);
     }
 }

@@ -39,7 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class Main {
+public final class SqlserverMain {
     
     // CHECKSTYLE:OFF
     public static void main(final String[] args) throws SQLException {
@@ -113,17 +113,17 @@ public final class Main {
     
     private static Map<String, DataSource> createDataSourceMap() {
         Map<String, DataSource> result = new HashMap<>(2);
-        result.put("ds_0", createDataSource("ds_0"));
-        result.put("ds_1", createDataSource("ds_1"));
+        result.put("ds_0", createDataSource("test"));
+        result.put("ds_1", createDataSource("test1"));
         return result;
     }
     
     private static DataSource createDataSource(final String dataSourceName) {
         BasicDataSource result = new BasicDataSource();
-        result.setDriverClassName(com.mysql.jdbc.Driver.class.getName());
-        result.setUrl(String.format("jdbc:mysql://localhost:3306/%s", dataSourceName));
-        result.setUsername("root");
-        result.setPassword("123456");
+        result.setDriverClassName(com.microsoft.sqlserver.jdbc.SQLServerDriver.class.getName());
+        result.setUrl(String.format("jdbc:sqlserver://192.168.1.104:1433;databaseName=%s", dataSourceName));
+        result.setUsername("ppdai");
+        result.setPassword("Password");
         return result;
     }
 }
