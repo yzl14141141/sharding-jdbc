@@ -46,24 +46,23 @@ public final class Main {
     // CHECKSTYLE:ON
         DataSource dataSource = getShardingDataSource();
         printSimpleSelect(dataSource);
-        System.out.println("--------------");
-        printGroupBy(dataSource);
-        System.out.println("--------------");
-        printHintSimpleSelect(dataSource);
+//        System.out.println("--------------");
+//        printGroupBy(dataSource);
+//        System.out.println("--------------");
+//        printHintSimpleSelect(dataSource);
     }
     
     private static void printSimpleSelect(final DataSource dataSource) throws SQLException {
-        String sql = "SELECT i.* FROM t_order o JOIN t_order_item i ON o.order_id=i.order_id WHERE o.user_id=? AND o.order_id=?";
+        String sql = "SELECT order_id,user_id FROM t_order o  order by user_id desc,order_id asc limit 5  ";
         try (
                 Connection conn = dataSource.getConnection();
                 PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
-            preparedStatement.setInt(1, 10);
-            preparedStatement.setInt(2, 1001);
+//            preparedStatement.setInt(1, 10);
+//            preparedStatement.setInt(2, 1001);
             try (ResultSet rs = preparedStatement.executeQuery()) {
                 while (rs.next()) {
-                    System.out.println(rs.getInt(1));
-                    System.out.println(rs.getInt(2));
-                    System.out.println(rs.getInt(3));
+                    System.out.print("\t"+rs.getObject(1));
+                    System.out.println("\t"+rs.getObject(2));
                 }
             }
         }

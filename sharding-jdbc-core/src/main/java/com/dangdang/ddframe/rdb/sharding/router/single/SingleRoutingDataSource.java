@@ -50,7 +50,12 @@ public class SingleRoutingDataSource {
         this(dataSource);
         routingTableFactors.add(routingTableFactor);
     }
-    
+
+    /**
+     * 获取执行单元
+     * @param sqlBuilder
+     * @return
+     */
     Collection<SQLExecutionUnit> getSQLExecutionUnits(final SQLBuilder sqlBuilder) {
         Collection<SQLExecutionUnit> result = new ArrayList<>();
         for (SingleRoutingTableFactor each : routingTableFactors) {

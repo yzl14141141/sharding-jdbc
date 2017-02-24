@@ -115,6 +115,7 @@ public final class SQLRouteEngine {
         SQLRouteResult result = new SQLRouteResult(parsedResult.getRouteContext().getSqlStatementType(), parsedResult.getMergeContext(), parsedResult.getGeneratedKeyContext());
         for (ConditionContext each : parsedResult.getConditionContexts()) {
             RoutingResult routingResult = routeSQL(each, parsedResult);
+            //根据路由结果，生成执行单元
             result.getExecutionUnits().addAll(routingResult.getSQLExecutionUnits(parsedResult.getRouteContext().getSqlBuilder()));
         }
         amendSQLAccordingToRouteResult(parsedResult, parameters, result);

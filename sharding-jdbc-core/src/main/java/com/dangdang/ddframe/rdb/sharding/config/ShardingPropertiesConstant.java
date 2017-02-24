@@ -84,13 +84,13 @@ public enum ShardingPropertiesConstant {
      * </p>
      */
     EXECUTOR_MAX_IDLE_TIMEOUT_MILLISECONDS("executor.max.idle.timeout.millisecond", "60000", long.class);
-    
+
     private final String key;
-    
+
     private final String defaultValue;
     
     private final Class<?> type;
-    
+
     /**
      * 根据属性键查找枚举.
      * 

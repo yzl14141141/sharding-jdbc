@@ -64,7 +64,8 @@ public abstract class AbstractMySQLVisitor extends MySqlOutputVisitor implements
     public final ParseContext getParseContext() {
         return parseContext;
     }
-    
+
+
     final void stepInQuery() {
         if (0 == parseContextIndex) {
             parseContextIndex++;

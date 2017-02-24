@@ -15,7 +15,7 @@
  * </p>
  */
 
-package com.dangdang.ddframe.rdb.integrate;
+package com.dangdang.ddframe.rdb.integrate_sqlserver;
 
 import com.dangdang.ddframe.rdb.sharding.constants.DatabaseType;
 import org.apache.commons.dbcp.BasicDataSource;
@@ -44,19 +44,19 @@ import java.util.Map;
 
 import static org.dbunit.Assertion.assertEquals;
 
-public abstract class AbstractDBUnitTest {
+public abstract class AbstractSQLServerDBUnitTest {
     
-    protected static final DatabaseType CURRENT_DB_TYPE = DatabaseType.MySQL;
+    protected static final DatabaseType CURRENT_DB_TYPE = DatabaseType.SQLServer;
     
     protected static final Map<String, DataSource> DATA_SOURCES = new HashMap<>();
     
-    private final DataBaseEnvironment dbEnv = new DataBaseEnvironment(CURRENT_DB_TYPE);
+    private final SQLServerEnvironment dbEnv = new SQLServerEnvironment(CURRENT_DB_TYPE);
     
     @Before
     public void createSchema() throws SQLException {
         for (String each : getSchemaFiles()) {
             Connection conn = createDataSource(each).getConnection();
-            RunScript.execute(conn, new InputStreamReader(AbstractDBUnitTest.class.getClassLoader().getResourceAsStream(each)));
+            RunScript.execute(conn, new InputStreamReader(AbstractSQLServerDBUnitTest.class.getClassLoader().getResourceAsStream(each)));
             conn.close();
         }
     }
@@ -64,9 +64,9 @@ public abstract class AbstractDBUnitTest {
     @Before
     public final void importDataSet() throws Exception {
         for (String each : getDataSetFiles()) {
-            InputStream is = AbstractDBUnitTest.class.getClassLoader().getResourceAsStream(each);
+            InputStream is = AbstractSQLServerDBUnitTest.class.getClassLoader().getResourceAsStream(each);
             IDataSet dataSet = new FlatXmlDataSetBuilder().build(new InputStreamReader(is));
-            IDatabaseTester databaseTester = new ShardingJdbcDatabaseTester(dbEnv.getDriverClassName(), dbEnv.getURL(getFileName(each)), dbEnv.getUsername(), dbEnv.getPassword());
+            IDatabaseTester databaseTester = new ShardingJdbcSQLServerTester(dbEnv.getDriverClassName(), dbEnv.getURL(getFileName(each)), dbEnv.getUsername(), dbEnv.getPassword());
             databaseTester.setSetUpOperation(DatabaseOperation.CLEAN_INSERT);
             databaseTester.setDataSet(dataSet);
             databaseTester.onSetup();
@@ -117,7 +117,7 @@ public abstract class AbstractDBUnitTest {
                 ps.setObject(i++, each);
             }
             ITable actualTable = getConnection(connection).createTable(actualTableName, ps);
-            IDataSet expectedDataSet = new FlatXmlDataSetBuilder().build(new InputStreamReader(AbstractDBUnitTest.class.getClassLoader().getResourceAsStream(expectedDataSetFile)));
+            IDataSet expectedDataSet = new FlatXmlDataSetBuilder().build(new InputStreamReader(AbstractSQLServerDBUnitTest.class.getClassLoader().getResourceAsStream(expectedDataSetFile)));
             assertEquals(expectedDataSet.getTable(actualTableName), actualTable);
         }
     }
@@ -126,7 +126,7 @@ public abstract class AbstractDBUnitTest {
             throws SQLException, DatabaseUnitException {
         try (Connection conn = connection) {
             ITable actualTable = getConnection(conn).createQueryTable(actualTableName, sql);
-            IDataSet expectedDataSet = new FlatXmlDataSetBuilder().build(new InputStreamReader(AbstractDBUnitTest.class.getClassLoader().getResourceAsStream(expectedDataSetFile)));
+            IDataSet expectedDataSet = new FlatXmlDataSetBuilder().build(new InputStreamReader(AbstractSQLServerDBUnitTest.class.getClassLoader().getResourceAsStream(expectedDataSetFile)));
             assertEquals(expectedDataSet.getTable(actualTableName), actualTable);
         }
     }

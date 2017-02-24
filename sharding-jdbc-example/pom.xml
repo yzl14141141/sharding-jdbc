@@ -40,6 +40,7 @@
         <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
         <maven-source-plugin.version>2.4</maven-source-plugin.version>
         <javadocExecutable>${java.home}/../bin/javadoc</javadocExecutable>
+        <sqljdbc4.version>4.0</sqljdbc4.version>
     </properties>
     
     <dependencies>
@@ -101,7 +102,7 @@
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>sqljdbc4</artifactId>
-            <version>4.0</version>
+            <version>${sqljdbc4.version}</version>
         </dependency>
     </dependencies>
     

@@ -76,7 +76,7 @@ public final class ParseContext {
     
     private final SQLParsedResult parsedResult = new SQLParsedResult();
     
-    private final int parseContextIndex;
+    private final int parseContextIndex;//parseContext序号，后面用于自增主键
     
     @Setter
     private ShardingRule shardingRule;

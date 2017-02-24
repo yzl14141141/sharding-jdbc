@@ -60,6 +60,7 @@ public class MySQLSelectVisitor extends AbstractMySQLVisitor {
     
     @Override
     public boolean visit(final MySqlSelectQueryBlock x) {
+        //yzl 由于select可能有嵌套，每次访问新建select，都会构建一个parseContext，形成跟嵌套查询相同的树形结构
         stepInQuery();
         if (x.getFrom() instanceof SQLExprTableSource) {
             SQLExprTableSource tableExpr = (SQLExprTableSource) x.getFrom();

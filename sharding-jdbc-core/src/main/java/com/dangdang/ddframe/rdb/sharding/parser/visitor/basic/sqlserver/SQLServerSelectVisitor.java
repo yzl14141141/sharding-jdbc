@@ -4,20 +4,20 @@ import java.util.List;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerTop;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerInsertStatement;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerUpdateStatement;
 import com.alibaba.druid.sql.dialect.sqlserver.visitor.SQLServerOutputVisitor;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AbstractSortableColumn;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AggregationColumn;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AggregationColumn.AggregationType;
+import com.dangdang.ddframe.rdb.sharding.parser.result.merger.Limit;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.OrderByColumn.OrderByType;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
@@ -59,6 +59,34 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
         }
 
         return super.visit(x);
+    }
+
+    /**
+     * 解析top
+     *
+     * @param x
+     * @return
+     */
+    @Override
+    public boolean visit(SQLServerTop x) {
+        print("TOP ");
+
+        int offset = 0;
+        int offSetIndex = -1;
+        int rowCount;
+        int rowCountIndex = -1;
+        x.getExpr();
+
+        if (x.getExpr() instanceof SQLNumericLiteralExpr) {
+            rowCount = ((SQLNumericLiteralExpr) x.getExpr()).getNumber().intValue();
+            printToken(Limit.COUNT_NAME, String.valueOf(rowCount));
+        } else {
+            rowCount = ((Number) getParameters().get(((SQLVariantRefExpr) x.getExpr()).getIndex())).intValue();
+            rowCountIndex = ((SQLVariantRefExpr) x.getExpr()).getIndex();
+            print("?");
+        }
+        getParseContext().getParsedResult().getMergeContext().setLimit(new Limit(offset, rowCount, offSetIndex, rowCountIndex));
+        return false;
     }
 
     /**
@@ -199,7 +227,6 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
         getParseContext().getParsedResult().getMergeContext().setLimit(new Limit(offset, rowCount, offSetIndex, rowCountIndex));
         return false;
     }*/
-
     @Override
     public void endVisit(final SQLServerSelectQueryBlock x) {
         StringBuilder derivedSelectItems = new StringBuilder();

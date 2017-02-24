@@ -54,7 +54,7 @@ public abstract class AbstractSQLServerVisitor extends SQLServerOutputVisitor im
             return;
         }
         ParseContext parseContext = new ParseContext(parseContextIndex++);
-//        parseContext.setShardingColumns(this.parseContext.getShardingColumns());
+        parseContext.setShardingRule(this.parseContext.getShardingRule());
         parseContext.setParentParseContext(this.parseContext);
         this.parseContext.getSubParseContext().add(parseContext);
         this.parseContext = parseContext;
