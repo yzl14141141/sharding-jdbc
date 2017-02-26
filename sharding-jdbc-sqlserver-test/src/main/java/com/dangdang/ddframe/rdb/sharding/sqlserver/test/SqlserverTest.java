@@ -15,19 +15,20 @@
  * </p>
  */
 
-package com.dangdang.ddframe.rdb.sharding.example.jdbc;
+package com.dangdang.ddframe.rdb.sharding.sqlserver.test;
 
-import com.dangdang.ddframe.rdb.sharding.api.HintManager;
 import com.dangdang.ddframe.rdb.sharding.api.rule.BindingTableRule;
 import com.dangdang.ddframe.rdb.sharding.api.rule.DataSourceRule;
 import com.dangdang.ddframe.rdb.sharding.api.rule.ShardingRule;
 import com.dangdang.ddframe.rdb.sharding.api.rule.TableRule;
 import com.dangdang.ddframe.rdb.sharding.api.strategy.database.DatabaseShardingStrategy;
 import com.dangdang.ddframe.rdb.sharding.api.strategy.table.TableShardingStrategy;
-import com.dangdang.ddframe.rdb.sharding.example.jdbc.algorithm.ModuloDatabaseShardingAlgorithm;
-import com.dangdang.ddframe.rdb.sharding.example.jdbc.algorithm.ModuloTableShardingAlgorithm;
 import com.dangdang.ddframe.rdb.sharding.jdbc.ShardingDataSource;
+import com.dangdang.ddframe.rdb.sharding.sqlserver.test.algorithm.ModuloDatabaseShardingAlgorithm;
+import com.dangdang.ddframe.rdb.sharding.sqlserver.test.algorithm.ModuloTableShardingAlgorithm;
 import org.apache.commons.dbcp.BasicDataSource;
+import org.junit.Before;
+import org.junit.Test;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -39,66 +40,31 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class Main {
-    
-    // CHECKSTYLE:OFF
-    public static void main(final String[] args) throws SQLException {
-    // CHECKSTYLE:ON
-        DataSource dataSource = getShardingDataSource();
-        printSimpleSelect(dataSource);
-//        System.out.println("--------------");
-//        printGroupBy(dataSource);
-//        System.out.println("--------------");
-//        printHintSimpleSelect(dataSource);
+public final class SqlserverTest {
+
+    private DataSource dataSource;
+
+    @Before
+    public void init() {
+        this.dataSource = getShardingDataSource();
     }
-    
-    private static void printSimpleSelect(final DataSource dataSource) throws SQLException {
-        String sql = "SELECT order_id,user_id FROM t_order o  order by user_id desc,order_id asc limit ?,?  ";
+
+
+    @Test
+    public void selectTop() throws SQLException {
+        String sql = "SELECT  top 5  *  FROM t_order o     order by user_id ,order_id desc  ";
         try (
                 Connection conn = dataSource.getConnection();
                 PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
-            preparedStatement.setInt(1, 1);
-            preparedStatement.setInt(2, 3);
             try (ResultSet rs = preparedStatement.executeQuery()) {
                 while (rs.next()) {
-                    System.out.print("\t"+rs.getObject(1));
-                    System.out.println("\t"+rs.getObject(2));
+                    System.out.print("\t" + rs.getObject(1));
+                    System.out.println("\t" + rs.getObject(2));
                 }
             }
         }
     }
-    
-    private static void printGroupBy(final DataSource dataSource) throws SQLException {
-        String sql = "SELECT o.user_id, COUNT(*) FROM t_order o JOIN t_order_item i ON o.order_id=i.order_id GROUP BY o.user_id";
-        try (
-                Connection conn = dataSource.getConnection();
-                PreparedStatement preparedStatement = conn.prepareStatement(sql)
-                ) {
-            ResultSet rs = preparedStatement.executeQuery();
-            while (rs.next()) {
-                System.out.println("user_id: " + rs.getInt(1) + ", count: " + rs.getInt(2));
-            }
-        }
-    }
-    
-    private static void printHintSimpleSelect(final DataSource dataSource) throws SQLException {
-        String sql = "SELECT i.* FROM t_order o JOIN t_order_item i ON o.order_id=i.order_id";
-        try (
-                HintManager hintManager = HintManager.getInstance();
-                Connection conn = dataSource.getConnection();
-                PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
-            hintManager.addDatabaseShardingValue("t_order", "user_id", 10);
-            hintManager.addTableShardingValue("t_order", "order_id", 1001);
-            try (ResultSet rs = preparedStatement.executeQuery()) {
-                while (rs.next()) {
-                    System.out.println(rs.getInt(1));
-                    System.out.println(rs.getInt(2));
-                    System.out.println(rs.getInt(3));
-                }
-            }
-        }
-    }
-    
+
     private static ShardingDataSource getShardingDataSource() {
         DataSourceRule dataSourceRule = new DataSourceRule(createDataSourceMap());
         TableRule orderTableRule = TableRule.builder("t_order").actualTables(Arrays.asList("t_order_0", "t_order_1")).dataSourceRule(dataSourceRule).build();
@@ -109,20 +75,20 @@ public final class Main {
                 .tableShardingStrategy(new TableShardingStrategy("order_id", new ModuloTableShardingAlgorithm())).build();
         return new ShardingDataSource(shardingRule);
     }
-    
+
     private static Map<String, DataSource> createDataSourceMap() {
         Map<String, DataSource> result = new HashMap<>(2);
-        result.put("ds_0", createDataSource("ds_0"));
-        result.put("ds_1", createDataSource("ds_1"));
+        result.put("ds_0", createDataSource("test"));
+        result.put("ds_1", createDataSource("test1"));
         return result;
     }
-    
+
     private static DataSource createDataSource(final String dataSourceName) {
         BasicDataSource result = new BasicDataSource();
-        result.setDriverClassName(com.mysql.jdbc.Driver.class.getName());
-        result.setUrl(String.format("jdbc:mysql://localhost:3306/%s", dataSourceName));
-        result.setUsername("root");
-        result.setPassword("123456");
+        result.setDriverClassName(com.microsoft.sqlserver.jdbc.SQLServerDriver.class.getName());
+        result.setUrl(String.format("jdbc:sqlserver://192.168.1.104:1433;databaseName=%s", dataSourceName));
+        result.setUsername("ppdai");
+        result.setPassword("Password");
         return result;
     }
 }

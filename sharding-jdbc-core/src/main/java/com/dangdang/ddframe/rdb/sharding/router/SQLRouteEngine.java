@@ -70,8 +70,8 @@ public final class SQLRouteEngine {
     public SQLRouteResult route(final String logicSql) throws SQLParserException {
         return route(logicSql, Collections.emptyList());
     }
-    
-    SQLRouteResult route(final String logicSql, final List<Object> parameters) throws SQLParserException {
+
+    public SQLRouteResult route(final String logicSql, final List<Object> parameters) throws SQLParserException {
         return routeSQL(parseSQL(logicSql, parameters), parameters);
     }
     

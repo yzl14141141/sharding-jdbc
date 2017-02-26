@@ -1,26 +1,34 @@
 package com.dangdang.ddframe.rdb.sharding.parser.visitor.basic.sqlserver;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
+import com.alibaba.druid.sql.ast.SQLOver;
 import com.alibaba.druid.sql.ast.expr.*;
-import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
-import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
+import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerTop;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerInsertStatement;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerUpdateStatement;
 import com.alibaba.druid.sql.dialect.sqlserver.visitor.SQLServerOutputVisitor;
+import com.alibaba.druid.sql.parser.ParserException;
+import com.alibaba.druid.sql.visitor.SQLASTOutputVisitorUtils;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AbstractSortableColumn;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AggregationColumn;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AggregationColumn.AggregationType;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.Limit;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.OrderByColumn.OrderByType;
+import com.dangdang.ddframe.rdb.sharding.parser.result.merger.RowNumberLimit;
+import com.dangdang.ddframe.rdb.sharding.parser.result.router.Condition;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * SQLServer的SELECT语句访问器.
@@ -28,6 +36,12 @@ import com.google.common.base.Strings;
  * @author CNJUN
  */
 public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
+
+    private static final String IS_PAGE_QUERY = "PARSE.IS_PAGE_QUERY";
+    private static final String ROWNUMBER_LIMIT = "PARSE.ROWNUMBER_LIMIT";
+    private static final String ORDERBY_EXPR = "PARSE.ORDERBY_EXPR";
+    private static final String ROWNUMBER_UP = "PARSE.ROWNUMBER_UP";
+    private static final String ROWNUMBER_DOWN = "PARSE.ROWNUMBER_DOWN";
 
     @Override
     protected void printSelectList(final List<SQLSelectItem> selectList) {
@@ -39,26 +53,126 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
     @Override
     public boolean visit(final SQLServerSelectQueryBlock x) {
         stepInQuery();
+        pageQueryVisit(x);
         if (x.getFrom() instanceof SQLExprTableSource) {
             SQLExprTableSource tableExpr = (SQLExprTableSource) x.getFrom();
             getParseContext().setCurrentTable(tableExpr.getExpr().toString(), Optional.fromNullable(tableExpr.getAlias()));
         }
-        // group by 表达式，SQLServer 的 Group By 部分不能使用 ASC, DESC 排序
-        SQLSelectGroupByClause group = x.getGroupBy();
-        if (group != null) {
-            List<SQLExpr> exprs = group.getItems();
-            for (SQLExpr expr : exprs) {
-                if (expr instanceof SQLPropertyExpr) {
-                    SQLPropertyExpr expr_ = (SQLPropertyExpr) expr;
-                    getParseContext().addGroupByColumns(Optional.of(expr_.getOwner().toString()), expr_.getName(), OrderByType.ASC);
-                } else if (expr instanceof SQLIdentifierExpr) {
-                    SQLIdentifierExpr expr_ = (SQLIdentifierExpr) expr;
-                    getParseContext().addGroupByColumns(Optional.<String>absent(), expr_.getName(), OrderByType.ASC);
+        return super.visit(x);
+    }
+
+    /**
+     * 处理sqlserver的分页查询
+     *
+     * @param x
+     * @return true 表示是分页查询
+     */
+    private boolean pageQueryVisit(final SQLServerSelectQueryBlock x) {
+        SQLTableSource from = x.getFrom();
+        SQLOrderBy orderBy = null;
+        SQLSelectItem rowNumber = null;
+        int up = -1;
+        int down = -1;
+        boolean upClosed = false;
+        boolean downClosed = false;
+        int downParameterIndex = -1;
+        int upParameterIndex = -1;
+        if (from instanceof SQLSubqueryTableSource) {
+            SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
+            SQLServerSelectQueryBlock subSelectSqlserver = (SQLServerSelectQueryBlock) subSelect;
+            List<SQLSelectItem> sqlSelectItems = subSelectSqlserver.getSelectList();
+            for (SQLSelectItem sqlSelectItem : sqlSelectItems) {
+                SQLExpr sqlExpr = sqlSelectItem.getExpr();
+                if (sqlExpr instanceof SQLAggregateExpr) {
+                    SQLAggregateExpr agg = (SQLAggregateExpr) sqlExpr;
+                    if ("row_number".equalsIgnoreCase(agg.getMethodName()) && agg.getOver() != null) {
+                        rowNumber = sqlSelectItem;
+                        orderBy = agg.getOver().getOrderBy();
+                        break;
+                    }
                 }
             }
         }
+        if (rowNumber != null) {//有row_number函数
+            //where条件是and
+            if (x.getWhere() instanceof SQLBinaryOpExpr && ((SQLBinaryOpExpr) x.getWhere()).getOperator() == SQLBinaryOperator.BooleanAnd) {
+                SQLBinaryOpExpr where = (SQLBinaryOpExpr) x.getWhere();
+                List<SQLExpr> conditions = Arrays.asList(where.getLeft(), where.getRight());
+                for (SQLExpr condition : conditions) {
+                    if (condition instanceof SQLBinaryOpExpr) {
+                        SQLBinaryOpExpr op = (SQLBinaryOpExpr) condition;
+                        int value = getOperIntValue(op,rowNumber.getAlias());
+                        int parameterIndex = getParameterIndex(op);
+                        if (op.getOperator() == SQLBinaryOperator.GreaterThan) {
+                            down = value;
+                            downParameterIndex = parameterIndex;
+                            op.putAttribute(ROWNUMBER_DOWN, Boolean.TRUE);
+                        } else if (op.getOperator() == SQLBinaryOperator.GreaterThanOrEqual) {
+                            down = value;
+                            downParameterIndex = parameterIndex;
+                            op.putAttribute(ROWNUMBER_DOWN, Boolean.TRUE);
+                            downClosed = true;
+                        } else if (op.getOperator() == SQLBinaryOperator.LessThan) {
+                            up = value;
+                            upParameterIndex = parameterIndex;
+                            op.putAttribute(ROWNUMBER_UP, Boolean.TRUE);
+                        } else if (op.getOperator() == SQLBinaryOperator.LessThanOrEqual) {
+                            up = value;
+                            upParameterIndex = parameterIndex;
+                            upClosed = true;
+                            op.putAttribute(ROWNUMBER_UP, Boolean.TRUE);
+                        }
+                    }
+                }
+            }
+            //区间上下界都有
+            if (up >= 1 && down >= 1 && up >= down) {
+                //计算limit
+                int u = upClosed ? up : up - 1;
+                int d = downClosed ? down : down + 1;
+                int offset = d - 1;
+                int rowCount = u - d + 1;
+                RowNumberLimit limit = new RowNumberLimit(offset, rowCount, down, downClosed, downParameterIndex, up, upClosed, upParameterIndex);
+                x.putAttribute(ROWNUMBER_LIMIT, limit);
+                // 处理orderby
+                if (orderBy != null) {
+                    x.putAttribute(ORDERBY_EXPR, orderBy);
+                }
+                x.putAttribute(IS_PAGE_QUERY, Boolean.TRUE);
+                return true;
+            } else {
+                throw new ParserException("sqlserver page sql parse error !");
+            }
+        }
+        return false;
+    }
 
-        return super.visit(x);
+    private int getParameterIndex(SQLBinaryOpExpr condition) {
+
+        SQLExpr right = condition.getRight();
+        if (right instanceof SQLVariantRefExpr) {
+            int parameterIndex = ((SQLVariantRefExpr) right).getIndex();
+            return parameterIndex;
+        }
+        return -1;
+    }
+
+    private int getOperIntValue(SQLBinaryOpExpr condition,String alias) {
+        if(condition.getLeft() instanceof SQLIdentifierExpr){
+            String name = ((SQLIdentifierExpr) condition.getLeft()).getName();
+            if(name.equalsIgnoreCase(alias)){
+                SQLExpr right = condition.getRight();
+                if (right instanceof SQLNumericLiteralExpr) {
+                    //TODO 标记
+                    right.putAttribute("",Boolean.TRUE);
+                    return ((SQLNumericLiteralExpr) right).getNumber().intValue();
+                } else if (right instanceof SQLVariantRefExpr) {
+                    int parameterIndex = ((SQLVariantRefExpr) right).getIndex();
+                    return ((Number) getParameters().get(parameterIndex)).intValue();
+                }
+            }
+        }
+        return -1;
     }
 
     /**
@@ -138,6 +252,15 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
     }
 
     public boolean visit(final SQLOrderBy x) {
+        //排序如果是over中的，返回false，放在endVisit中处理
+        if (x.getParent() instanceof SQLOver) {
+            return false;
+        }
+        visitOrderBy(x);
+        return super.visit(x);
+    }
+
+    private void visitOrderBy(final SQLOrderBy x) {
         for (SQLSelectOrderByItem each : x.getItems()) {
             SQLExpr expr = each.getExpr();
             OrderByType orderByType = null == each.getType() ? OrderByType.ASC : OrderByType.valueOf(each.getType());
@@ -151,9 +274,7 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
 
             }
         }
-        return super.visit(x);
     }
-
     /**
      * 将GROUP BY列放入parseResult.
      * 直接返回false,防止重复解析GROUP BY表达式.
@@ -229,6 +350,15 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
     }*/
     @Override
     public void endVisit(final SQLServerSelectQueryBlock x) {
+        //处理分页
+        if (x.getAttribute(IS_PAGE_QUERY) == Boolean.TRUE) {
+            if (x.getAttribute(ORDERBY_EXPR) instanceof SQLOrderBy) {//处理orderby
+                visitOrderBy((SQLOrderBy) x.getAttribute(ORDERBY_EXPR));
+            }
+            if (x.getAttribute(ROWNUMBER_LIMIT) instanceof RowNumberLimit) {//处理limit
+                getParseContext().getParsedResult().getMergeContext().setLimit((RowNumberLimit) x.getAttribute(ROWNUMBER_LIMIT));
+            }
+        }
         StringBuilder derivedSelectItems = new StringBuilder();
         for (AggregationColumn aggregationColumn : getParseContext().getParsedResult().getMergeContext().getAggregationColumns()) {
             for (AggregationColumn derivedColumn : aggregationColumn.getDerivedColumns()) {
@@ -256,4 +386,22 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
             derivedSelectItems.append(each.getName().get()).append(" AS ").append(each.getAlias().get());
         }
     }
+
+    public boolean visit(SQLIntegerExpr x) {
+        return super.visit(x);
+    }
+
+    @Override
+    public boolean visit(final SQLBinaryOpExpr x) {
+        SQLObject parent = x.getParent();
+        if (parent instanceof SQLServerSelectQueryBlock) {
+            SQLServerSelectQueryBlock selectQuery = (SQLServerSelectQueryBlock) parent;
+            if (selectQuery.getAttribute(IS_PAGE_QUERY) == Boolean.TRUE) {
+
+            }
+        }
+
+        return super.visit(x);
+    }
+
 }
