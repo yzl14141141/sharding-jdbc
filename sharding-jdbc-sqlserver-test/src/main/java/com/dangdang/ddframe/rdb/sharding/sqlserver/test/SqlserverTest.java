@@ -65,6 +65,33 @@ public final class SqlserverTest {
         }
     }
 
+
+    @Test
+    public void selectRownumber() throws SQLException {
+        String sql = "SELECT order_id\n" +
+                "    , user_id \n" +
+                "FROM (\n" +
+                "    SELECT ROW_NUMBER() OVER (ORDER BY order_id) AS Row\n" +
+                "        , order_id\n" +
+                "        , user_id \n" +
+                "    FROM t_order\n" +
+                "    where user_id=10\n" +
+                ") AS t \n" +
+                "WHERE Row >= 2 AND Row <= ? ";
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
+            preparedStatement.setInt(1, 3);
+//            preparedStatement.setInt(2, 3);
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                while (rs.next()) {
+                    System.out.print("\t" + rs.getObject(1));
+                    System.out.println("\t" + rs.getObject(2));
+                }
+            }
+        }
+    }
+
     private static ShardingDataSource getShardingDataSource() {
         DataSourceRule dataSourceRule = new DataSourceRule(createDataSourceMap());
         TableRule orderTableRule = TableRule.builder("t_order").actualTables(Arrays.asList("t_order_0", "t_order_1")).dataSourceRule(dataSourceRule).build();

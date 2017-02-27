@@ -93,34 +93,55 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
                 }
             }
         }
-        if (rowNumber != null) {//有row_number函数
-            //where条件是and
+        if (rowNumber != null) {
+            //有row_number函数
+            SQLExpr downValueExpr = null;
+            SQLExpr upValueExpr = null;
             if (x.getWhere() instanceof SQLBinaryOpExpr && ((SQLBinaryOpExpr) x.getWhere()).getOperator() == SQLBinaryOperator.BooleanAnd) {
+                //where条件是and
                 SQLBinaryOpExpr where = (SQLBinaryOpExpr) x.getWhere();
                 List<SQLExpr> conditions = Arrays.asList(where.getLeft(), where.getRight());
                 for (SQLExpr condition : conditions) {
                     if (condition instanceof SQLBinaryOpExpr) {
-                        SQLBinaryOpExpr op = (SQLBinaryOpExpr) condition;
-                        int value = getOperIntValue(op,rowNumber.getAlias());
-                        int parameterIndex = getParameterIndex(op);
-                        if (op.getOperator() == SQLBinaryOperator.GreaterThan) {
+                        SQLBinaryOpExpr opExpr = (SQLBinaryOpExpr) condition;
+                        int value = getOperIntValue(opExpr, rowNumber.getAlias());
+                        int parameterIndex = getParameterIndex(opExpr);
+                        switch (opExpr.getOperator()) {
+                            case GreaterThanOrEqual:
+                                downClosed = true;
+                            case GreaterThan:
+                                down = value;
+                                downParameterIndex = parameterIndex;
+                                downValueExpr = opExpr.getRight();
+                                break;
+                            case LessThanOrEqual:
+                                upClosed = true;
+                            case LessThan:
+                                up = value;
+                                upParameterIndex = parameterIndex;
+                                upValueExpr = opExpr.getRight();
+                                break;
+                            default:
+                                break;
+                        }
+                        if (opExpr.getOperator() == SQLBinaryOperator.GreaterThan) {
                             down = value;
                             downParameterIndex = parameterIndex;
-                            op.putAttribute(ROWNUMBER_DOWN, Boolean.TRUE);
-                        } else if (op.getOperator() == SQLBinaryOperator.GreaterThanOrEqual) {
+                            opExpr.putAttribute(ROWNUMBER_DOWN, Boolean.TRUE);
+                        } else if (opExpr.getOperator() == SQLBinaryOperator.GreaterThanOrEqual) {
                             down = value;
                             downParameterIndex = parameterIndex;
-                            op.putAttribute(ROWNUMBER_DOWN, Boolean.TRUE);
+                            opExpr.putAttribute(ROWNUMBER_DOWN, Boolean.TRUE);
                             downClosed = true;
-                        } else if (op.getOperator() == SQLBinaryOperator.LessThan) {
+                        } else if (opExpr.getOperator() == SQLBinaryOperator.LessThan) {
                             up = value;
                             upParameterIndex = parameterIndex;
-                            op.putAttribute(ROWNUMBER_UP, Boolean.TRUE);
-                        } else if (op.getOperator() == SQLBinaryOperator.LessThanOrEqual) {
+                            opExpr.putAttribute(ROWNUMBER_UP, Boolean.TRUE);
+                        } else if (opExpr.getOperator() == SQLBinaryOperator.LessThanOrEqual) {
                             up = value;
                             upParameterIndex = parameterIndex;
                             upClosed = true;
-                            op.putAttribute(ROWNUMBER_UP, Boolean.TRUE);
+                            opExpr.putAttribute(ROWNUMBER_UP, Boolean.TRUE);
                         }
                     }
                 }
@@ -139,6 +160,11 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
                     x.putAttribute(ORDERBY_EXPR, orderBy);
                 }
                 x.putAttribute(IS_PAGE_QUERY, Boolean.TRUE);
+                //标记区间上下界值的表达式
+                downValueExpr.putAttribute(ROWNUMBER_LIMIT, limit);
+                downValueExpr.putAttribute(ROWNUMBER_DOWN, Boolean.TRUE);
+                upValueExpr.putAttribute(ROWNUMBER_LIMIT, limit);
+                upValueExpr.putAttribute(ROWNUMBER_UP, Boolean.TRUE);
                 return true;
             } else {
                 throw new ParserException("sqlserver page sql parse error !");
@@ -157,14 +183,12 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
         return -1;
     }
 
-    private int getOperIntValue(SQLBinaryOpExpr condition,String alias) {
-        if(condition.getLeft() instanceof SQLIdentifierExpr){
+    private int getOperIntValue(SQLBinaryOpExpr condition, String alias) {
+        if (condition.getLeft() instanceof SQLIdentifierExpr) {
             String name = ((SQLIdentifierExpr) condition.getLeft()).getName();
-            if(name.equalsIgnoreCase(alias)){
+            if (name.equalsIgnoreCase(alias)) {
                 SQLExpr right = condition.getRight();
                 if (right instanceof SQLNumericLiteralExpr) {
-                    //TODO 标记
-                    right.putAttribute("",Boolean.TRUE);
                     return ((SQLNumericLiteralExpr) right).getNumber().intValue();
                 } else if (right instanceof SQLVariantRefExpr) {
                     int parameterIndex = ((SQLVariantRefExpr) right).getIndex();
@@ -176,7 +200,7 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
     }
 
     /**
-     * 解析top
+     * 解析top，支持top 10，top ? 两种方式
      *
      * @param x
      * @return
@@ -184,13 +208,11 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
     @Override
     public boolean visit(SQLServerTop x) {
         print("TOP ");
-
         int offset = 0;
         int offSetIndex = -1;
         int rowCount;
         int rowCountIndex = -1;
         x.getExpr();
-
         if (x.getExpr() instanceof SQLNumericLiteralExpr) {
             rowCount = ((SQLNumericLiteralExpr) x.getExpr()).getNumber().intValue();
             printToken(Limit.COUNT_NAME, String.valueOf(rowCount));
@@ -252,8 +274,9 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
     }
 
     public boolean visit(final SQLOrderBy x) {
-        //排序如果是over中的，返回false，放在endVisit中处理
         if (x.getParent() instanceof SQLOver) {
+            //排序如果是over中的，返回false，不调用visitOrderBy，parsePage中会判断，放在endVisit中处理
+            super.visit(x);
             return false;
         }
         visitOrderBy(x);
@@ -388,6 +411,11 @@ public class SQLServerSelectVisitor extends AbstractSQLServerVisitor {
     }
 
     public boolean visit(SQLIntegerExpr x) {
+        if (x.getAttribute(ROWNUMBER_DOWN) == Boolean.TRUE) {
+            //将区间下届替换成标记，路由的时候再处理，看看是否需要替换
+            printToken(RowNumberLimit.DOWN_NAME, String.valueOf(x.getValue()));
+            return false;
+        }
         return super.visit(x);
     }
 
