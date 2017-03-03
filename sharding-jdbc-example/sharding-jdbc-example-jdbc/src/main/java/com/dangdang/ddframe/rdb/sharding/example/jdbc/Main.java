@@ -34,10 +34,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public final class Main {
     
@@ -46,10 +43,10 @@ public final class Main {
     // CHECKSTYLE:ON
         DataSource dataSource = getShardingDataSource();
         printSimpleSelect(dataSource);
-//        System.out.println("--------------");
-//        printGroupBy(dataSource);
-//        System.out.println("--------------");
-//        printHintSimpleSelect(dataSource);
+        System.out.println("--------------");
+        printGroupBy(dataSource);
+        System.out.println("--------------");
+        printHintSimpleSelect(dataSource);
     }
     
     private static void printSimpleSelect(final DataSource dataSource) throws SQLException {
@@ -107,7 +104,9 @@ public final class Main {
                 .bindingTableRules(Collections.singletonList(new BindingTableRule(Arrays.asList(orderTableRule, orderItemTableRule))))
                 .databaseShardingStrategy(new DatabaseShardingStrategy("user_id", new ModuloDatabaseShardingAlgorithm()))
                 .tableShardingStrategy(new TableShardingStrategy("order_id", new ModuloTableShardingAlgorithm())).build();
-        return new ShardingDataSource(shardingRule);
+        Properties props=new Properties();
+        props.setProperty("metrics.enable","true");
+        return new ShardingDataSource(shardingRule,props);
     }
     
     private static Map<String, DataSource> createDataSourceMap() {

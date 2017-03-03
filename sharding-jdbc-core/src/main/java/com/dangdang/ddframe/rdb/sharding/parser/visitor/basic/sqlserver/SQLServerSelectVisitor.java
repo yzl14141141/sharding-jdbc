@@ -1,9 +1,5 @@
 package com.dangdang.ddframe.rdb.sharding.parser.visitor.basic.sqlserver;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
@@ -12,23 +8,19 @@ import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerTop;
-import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerInsertStatement;
-import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerUpdateStatement;
 import com.alibaba.druid.sql.dialect.sqlserver.visitor.SQLServerOutputVisitor;
 import com.alibaba.druid.sql.parser.ParserException;
-import com.alibaba.druid.sql.visitor.SQLASTOutputVisitorUtils;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AbstractSortableColumn;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AggregationColumn;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.AggregationColumn.AggregationType;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.Limit;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.OrderByColumn.OrderByType;
 import com.dangdang.ddframe.rdb.sharding.parser.result.merger.RowNumberLimit;
-import com.dangdang.ddframe.rdb.sharding.parser.result.router.Condition;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * SQLServer的SELECT语句访问器.

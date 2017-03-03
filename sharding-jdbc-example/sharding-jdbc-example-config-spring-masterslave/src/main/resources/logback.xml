@@ -3,7 +3,7 @@
 
     <property name="log.context.name" value="sharding-jdbc-example-config-spring" />
     <property name="log.charset" value="UTF-8" />
-    <property name="log.pattern" value="[%-5level] %date --%thread-- [%logger] %msg %n" />
+    <property name="log.pattern" value="[%logger{36}] %msg %n" />
 
     <contextName>${log.context.name}</contextName>
 
@@ -13,6 +13,9 @@
         </encoder>
     </appender>
 
+    <logger name="com.dangdang" level="debug" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
     <root>
         <level value="INFO" />
         <appender-ref ref="STDOUT" />

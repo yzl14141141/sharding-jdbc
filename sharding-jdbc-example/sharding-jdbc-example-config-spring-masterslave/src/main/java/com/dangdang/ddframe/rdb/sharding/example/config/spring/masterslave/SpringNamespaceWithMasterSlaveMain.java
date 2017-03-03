@@ -30,9 +30,9 @@ public final class SpringNamespaceWithMasterSlaveMain {
     // CHECKSTYLE:ON
         ApplicationContext applicationContext = new ClassPathXmlApplicationContext("META-INF/applicationContextWithMasterSlave.xml");
         OrderService orderService =  applicationContext.getBean(OrderService.class);
-        orderService.insert();
+//        orderService.insert();
         orderService.select();
-        orderService.delete();
-        orderService.select();
+//        orderService.delete();
+//        orderService.select();
     }
 }

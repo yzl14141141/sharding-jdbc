@@ -22,6 +22,10 @@ import org.junit.Test;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -31,11 +35,25 @@ public final class RoundRobinSlaveLoadBalanceStrategyTest {
     private RoundRobinSlaveLoadBalanceStrategy roundRobinSlaveLoadBalanceStrategy = new RoundRobinSlaveLoadBalanceStrategy();
     
     @Test
-    public void assertGetDataSource() {
-        DataSource slaveDataSource1 = new TestDataSource("test_ds_slave_1");
-        DataSource slaveDataSource2 = new TestDataSource("test_ds_slave_2");
-        assertThat(roundRobinSlaveLoadBalanceStrategy.getDataSource("ds", Arrays.asList(slaveDataSource1, slaveDataSource2)), is(slaveDataSource1));
-        assertThat(roundRobinSlaveLoadBalanceStrategy.getDataSource("ds", Arrays.asList(slaveDataSource1, slaveDataSource2)), is(slaveDataSource2));
-        assertThat(roundRobinSlaveLoadBalanceStrategy.getDataSource("ds", Arrays.asList(slaveDataSource1, slaveDataSource2)), is(slaveDataSource1));
+    public void assertGetDataSource() throws InterruptedException {
+        final DataSource slaveDataSource1 = new TestDataSource("test_ds_slave_1");
+        final DataSource slaveDataSource2 = new TestDataSource("test_ds_slave_2");
+//        assertThat(roundRobinSlaveLoadBalanceStrategy.getDataSource("ds", Arrays.asList(slaveDataSource1, slaveDataSource2)), is(slaveDataSource1));
+//        assertThat(roundRobinSlaveLoadBalanceStrategy.getDataSource("ds", Arrays.asList(slaveDataSource1, slaveDataSource2)), is(slaveDataSource2));
+//        assertThat(roundRobinSlaveLoadBalanceStrategy.getDataSource("ds", Arrays.asList(slaveDataSource1, slaveDataSource2)), is(slaveDataSource1));
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        for(int i=0;i<2;i++){
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    for (int i=0;i<1000;i++){
+                        roundRobinSlaveLoadBalanceStrategy.getDataSource("ds", Arrays.asList(slaveDataSource1, slaveDataSource2));
+
+                    }
+                }
+            });
+        }
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.DAYS);
     }
 }

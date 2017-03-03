@@ -92,10 +92,10 @@ public final class SQLVisitorRegistry {
         DELETE_REGISTRY.put(DatabaseType.H2, MySQLDeleteVisitor.class);
         DELETE_REGISTRY.put(DatabaseType.MySQL, MySQLDeleteVisitor.class);
         // TODO 其他数据库先使用MySQL, 只能使用标准SQL
-        INSERT_REGISTRY.put(DatabaseType.Oracle, MySQLDeleteVisitor.class);
-        INSERT_REGISTRY.put(DatabaseType.SQLServer, SQLServerDeleteVisitor.class);
-        INSERT_REGISTRY.put(DatabaseType.DB2, MySQLDeleteVisitor.class);
-        INSERT_REGISTRY.put(DatabaseType.PostgreSQL, MySQLDeleteVisitor.class);
+        DELETE_REGISTRY.put(DatabaseType.Oracle, MySQLDeleteVisitor.class);
+        DELETE_REGISTRY.put(DatabaseType.SQLServer, SQLServerDeleteVisitor.class);
+        DELETE_REGISTRY.put(DatabaseType.DB2, MySQLDeleteVisitor.class);
+        DELETE_REGISTRY.put(DatabaseType.PostgreSQL, MySQLDeleteVisitor.class);
     }
     
     /**

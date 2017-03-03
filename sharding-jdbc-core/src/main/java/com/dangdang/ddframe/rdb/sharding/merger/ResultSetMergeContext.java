@@ -33,13 +33,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 结果集归并上下文.
- *
- * @author zhangliang
- */
-@Getter
-public final class ResultSetMergeContext {
+    /**
+     * 结果集归并上下文.
+     *
+     * @author zhangliang
+     */
+    @Getter
+    public final class ResultSetMergeContext {
     
     private final ShardingResultSets shardingResultSets;
     
@@ -58,7 +58,7 @@ public final class ResultSetMergeContext {
         setColumnIndex(((AbstractResultSetAdapter) shardingResultSets.getResultSets().get(0)).getColumnLabelIndexMap());
         currentOrderByKeys.addAll(mergeContext.getOrderByColumns());
     }
-    
+    //yzl 这里作用是什么？
     private void setColumnIndex(final Map<String, Integer> columnLabelIndexMap) {
         for (IndexColumn each : getAllFocusedColumns()) {
             if (each.getColumnIndex() > 0) {

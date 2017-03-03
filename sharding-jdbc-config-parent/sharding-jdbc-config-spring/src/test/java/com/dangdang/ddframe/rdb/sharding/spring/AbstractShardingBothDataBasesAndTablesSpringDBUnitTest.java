@@ -78,7 +78,7 @@ public abstract class AbstractShardingBothDataBasesAndTablesSpringDBUnitTest ext
     
     private void selectData() throws SQLException {
         String sql = "SELECT i.order_id, i.order_item_id  FROM `t_order` o JOIN `t_order_item` i ON o.user_id = i.user_id AND o.order_id = i.order_id"
-            + " WHERE o.`user_id` = ? AND o.`order_id` = ? AND i.`order_id` = ? ORDER BY i.order_item_id DESC";
+            + " WHERE o.`user_id` = ? AND o.`order_id` = ? ORDER BY i.order_item_id DESC";
         try (Connection connection = getShardingDataSource().getConnection()) {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, 1);

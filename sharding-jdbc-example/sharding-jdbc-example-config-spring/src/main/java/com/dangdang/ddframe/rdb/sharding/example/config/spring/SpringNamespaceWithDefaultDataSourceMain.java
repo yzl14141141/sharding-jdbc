@@ -30,6 +30,7 @@ public final class SpringNamespaceWithDefaultDataSourceMain {
     // CHECKSTYLE:ON
         ApplicationContext applicationContext = new ClassPathXmlApplicationContext("META-INF/applicationContextWithDefaultDataSource.xml");
         OrderService orderService =  applicationContext.getBean(OrderService.class);
+        orderService.delete();
         orderService.insert();
         orderService.select();
         orderService.delete();
