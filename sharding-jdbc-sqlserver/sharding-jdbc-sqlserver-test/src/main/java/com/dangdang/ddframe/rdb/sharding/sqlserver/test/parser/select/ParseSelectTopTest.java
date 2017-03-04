@@ -15,23 +15,21 @@
  * </p>
  */
 
-package com.dangdang.ddframe.rdb.sharding.sqlserver.test.parser;
+package com.dangdang.ddframe.rdb.sharding.sqlserver.test.parser.select;
 
-import com.dangdang.ddframe.rdb.sharding.parser.SQLParseEngine;
 import com.dangdang.ddframe.rdb.sharding.parser.result.SQLParsedResult;
 import com.dangdang.ddframe.rdb.sharding.sqlserver.test.AbstractTest;
+import com.dangdang.ddframe.rdb.sharding.sqlserver.test.parser.AbstractParseTest;
 import org.junit.Test;
 
-import java.util.Collections;
+import java.util.Arrays;
 
-public final class ParseSelectTopTest extends AbstractTest {
-
+public final class ParseSelectTopTest extends AbstractParseTest {
 
     @Test
     public void parseSelectTop() {
         String sql = "SELECT  top 5  *  FROM t_order o  order by user_id ,order_id desc ";
-        SQLParseEngine engine = getSQLParseEngine(sql, Collections.emptyList());
-        SQLParsedResult result = engine.parse();
+        SQLParsedResult result = parseSQL(sql, Arrays.asList(new Object[]{}));
         String expectSql = result.getRouteContext().getSqlBuilder().toString();
         System.out.println(expectSql);
     }

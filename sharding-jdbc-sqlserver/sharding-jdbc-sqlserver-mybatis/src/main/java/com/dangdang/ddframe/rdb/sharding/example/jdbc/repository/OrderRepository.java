@@ -20,6 +20,7 @@ package com.dangdang.ddframe.rdb.sharding.example.jdbc.repository;
 import java.util.List;
 
 import com.dangdang.ddframe.rdb.sharding.example.jdbc.entity.Order;
+import org.apache.ibatis.annotations.Param;
 
 public interface OrderRepository {
     
@@ -30,4 +31,8 @@ public interface OrderRepository {
     int deleteAll();
     
     List<Order> selectAll();
+
+    List<Order> selectTop(@Param("top") int top);
+
+    List<Order> selectRownumber(@Param("begin") int begin, @Param("end") int end);
 }

@@ -15,16 +15,16 @@
  * </p>
  */
 
-package com.dangdang.ddframe.rdb.sharding.sqlserver.test.parser;
+package com.dangdang.ddframe.rdb.sharding.sqlserver.test.parser.select;
 
-import com.dangdang.ddframe.rdb.sharding.parser.SQLParseEngine;
 import com.dangdang.ddframe.rdb.sharding.parser.result.SQLParsedResult;
 import com.dangdang.ddframe.rdb.sharding.sqlserver.test.AbstractTest;
+import com.dangdang.ddframe.rdb.sharding.sqlserver.test.parser.AbstractParseTest;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-public final class ParseSelectRownumberTest extends AbstractTest {
+public final class ParseSelectRownumberTest extends AbstractParseTest {
 
 
     @Test
@@ -40,9 +40,7 @@ public final class ParseSelectRownumberTest extends AbstractTest {
                 "    where user_id=10\n" +
                 ") AS t \n" +
                 "WHERE Row >= 2 AND Row <= ? ";
-        Object[] parameters = new Object[]{10};
-        SQLParseEngine engine = getSQLParseEngine(sql, Arrays.asList(parameters));
-        SQLParsedResult result = engine.parse();
+        SQLParsedResult result = parseSQL(sql, Arrays.asList(new Object[]{10}));
         String expectSql = result.getRouteContext().getSqlBuilder().toString();
         System.out.println(expectSql);
     }
@@ -55,9 +53,7 @@ public final class ParseSelectRownumberTest extends AbstractTest {
                 "        , user_id \n" +
                 "    FROM t_order\n" +
                 "    where user_id=10\n";
-        Object[] parameters = new Object[]{};
-        SQLParseEngine engine = getSQLParseEngine(sql, Arrays.asList(parameters));
-        SQLParsedResult result = engine.parse();
+        SQLParsedResult result = parseSQL(sql, Arrays.asList(new Object[]{}));
         String expectSql = result.getRouteContext().getSqlBuilder().toString();
         System.out.println(expectSql);
     }

@@ -1,10 +1,15 @@
 --sqlserver
 
 --ds_0
-CREATE TABLE t_order_0 (order_id INT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id));
-CREATE TABLE t_order_1 (order_id INT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id));
+CREATE TABLE t_order_0 (order_id BIGINT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id));
+CREATE TABLE t_order_1 (order_id BIGINT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id));
 CREATE TABLE t_order_item_0 (item_id INT NOT NULL, order_id INT NOT NULL, user_id INT NOT NULL, PRIMARY KEY (item_id));
 CREATE TABLE t_order_item_1 (item_id INT NOT NULL, order_id INT NOT NULL, user_id INT NOT NULL, PRIMARY KEY (item_id));
+
+DELETE  FROM  t_order_0;
+DELETE  FROM  t_order_1;
+DELETE  FROM  t_order_item_0;
+DELETE  FROM  t_order_item_1;
 
 INSERT INTO t_order_0 VALUES (1000, 10, 'INIT');
 INSERT INTO t_order_0 VALUES (1002, 10, 'INIT');
@@ -30,11 +35,15 @@ INSERT INTO t_order_item_1 VALUES (100901, 1009, 10);
 
 
 --ds_1
-CREATE TABLE t_order_0 (order_id INT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id));
-CREATE TABLE t_order_1 (order_id INT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id));
+CREATE TABLE t_order_0 (order_id BIGINT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id));
+CREATE TABLE t_order_1 (order_id BIGINT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id));
 CREATE TABLE t_order_item_0 (item_id INT NOT NULL, order_id INT NOT NULL, user_id INT NOT NULL, PRIMARY KEY (item_id));
 CREATE TABLE t_order_item_1 (item_id INT NOT NULL, order_id INT NOT NULL, user_id INT NOT NULL, PRIMARY KEY (item_id));
 
+DELETE  FROM  t_order_0;
+DELETE  FROM  t_order_1;
+DELETE  FROM  t_order_item_0;
+DELETE  FROM  t_order_item_1;
 
 INSERT INTO t_order_0 VALUES (1100, 11, 'INIT');
 INSERT INTO t_order_0 VALUES (1102, 11, 'INIT');

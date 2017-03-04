@@ -64,4 +64,23 @@ public class OrderService {
         fooService();
         throw new IllegalArgumentException("failed");
     }
+
+
+    public void printTop(int top) {
+        List<Order> orders = orderRepository.selectTop(top);
+        printOrder(orders);
+    }
+
+    public void printRownumber(int begin, int end) {
+        List<Order> orders = orderRepository.selectRownumber(begin, end);
+        printOrder(orders);
+    }
+
+    private void printOrder(List<Order> orders) {
+        for (Order order : orders) {
+            System.out.print(order.getOrderId() + ",");
+            System.out.print(order.getUserId() + ",");
+            System.out.println(order.getStatus());
+        }
+    }
 }

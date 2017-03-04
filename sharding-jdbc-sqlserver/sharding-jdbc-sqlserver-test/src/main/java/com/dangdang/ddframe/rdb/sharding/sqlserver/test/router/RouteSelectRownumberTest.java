@@ -1,9 +1,6 @@
 package com.dangdang.ddframe.rdb.sharding.sqlserver.test.router;
 
-import com.dangdang.ddframe.rdb.sharding.constants.DatabaseType;
-import com.dangdang.ddframe.rdb.sharding.router.SQLRouteEngine;
 import com.dangdang.ddframe.rdb.sharding.router.SQLRouteResult;
-import com.dangdang.ddframe.rdb.sharding.sqlserver.test.AbstractTest;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -11,8 +8,7 @@ import java.util.Arrays;
 /**
  * Created by along on 2017/2/26.
  */
-public class RouteSelectRownumberTest extends AbstractTest{
-
+public class RouteSelectRownumberTest extends AbstractRouteTest {
 
     @Test
     public void routeSelectRownumber0() {
@@ -27,9 +23,7 @@ public class RouteSelectRownumberTest extends AbstractTest{
                 "    where user_id=10\n" +
                 ") AS t \n" +
                 "WHERE Row >= 3 AND Row <= ? ";
-        Object[] parameters = new Object[]{10};
-        SQLRouteEngine routeEngine = new SQLRouteEngine(getShardingRule(), DatabaseType.SQLServer);
-        SQLRouteResult result = routeEngine.route(sql, Arrays.asList(parameters));
-        System.out.println(result);
+        SQLRouteResult result = routeSQL(sql, Arrays.asList(new Object[]{10}));
+        System.out.println(result.getExecutionUnits());
     }
 }

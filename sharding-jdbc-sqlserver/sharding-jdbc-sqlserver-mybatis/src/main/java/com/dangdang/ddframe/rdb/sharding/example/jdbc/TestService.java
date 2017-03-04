@@ -20,8 +20,6 @@ public class TestService {
     @Test
     public void testClear() {
         orderService.clear();
-//        List<Order> orders = orderService.select();
-//        Assert.assertTrue(orders.isEmpty());
     }
 
     @Test
@@ -42,5 +40,16 @@ public class TestService {
         }
         List<Order> orders = orderService.select();
         Assert.assertEquals(orders.size(), 0);
+    }
+
+    @Test
+    public void testSelectTop() {
+        orderService.printTop(5);
+    }
+
+
+    @Test
+    public void testSelectRownumber() {
+        orderService.printRownumber(2,3);
     }
 }

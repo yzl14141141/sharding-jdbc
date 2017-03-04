@@ -10,8 +10,10 @@ import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLVariantRefExpr;
+import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.sqlserver.visitor.SQLServerOutputVisitor;
 import com.dangdang.ddframe.rdb.sharding.constants.DatabaseType;
 import com.dangdang.ddframe.rdb.sharding.parser.result.router.Condition.BinaryOperator;
@@ -81,6 +83,7 @@ public abstract class AbstractSQLServerVisitor extends SQLServerOutputVisitor im
     public final void printToken(final String label, final String token) {
         getSQLBuilder().appendToken(label, SQLUtil.getExactlyValue(token));
     }
+
     /**
      * 父类使用<tt>@@</tt>代替<tt>?</tt>,此处直接输出参数占位符<tt>?</tt>
      *
@@ -116,12 +119,12 @@ public abstract class AbstractSQLServerVisitor extends SQLServerOutputVisitor im
 
     /**
      * 将表名替换成占位符.
-     *
+     * <p>
      * <p>
      * 1. 如果二元表达式使用别名, 如:
      * {@code FROM order o WHERE o.column_name = 't' }, 则Column中的tableName为o.
      * </p>
-     *
+     * <p>
      * <p>
      * 2. 如果二元表达式使用表名, 如:
      * {@code FROM order WHERE order.column_name = 't' }, 则Column中的tableName为order.
@@ -178,4 +181,21 @@ public abstract class AbstractSQLServerVisitor extends SQLServerOutputVisitor im
         parseContext.addCondition(x.getTestExpr(), BinaryOperator.BETWEEN, Arrays.asList(x.getBeginExpr(), x.getEndExpr()), getDatabaseType(), getParameters());
         return super.visit(x);
     }
+
+
+    public boolean visit(SQLDeleteStatement x) {
+        print("DELETE FROM ");
+        x.getTableSource().accept(this);
+        if (x.getWhere() != null) {
+            println();
+            incrementIndent();
+            print("WHERE ");
+            x.getWhere().setParent(x);
+            x.getWhere().accept(this);
+            decrementIndent();
+        }
+
+        return false;
+    }
+
 }

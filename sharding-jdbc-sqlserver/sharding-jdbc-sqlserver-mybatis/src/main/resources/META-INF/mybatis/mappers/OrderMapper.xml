@@ -4,7 +4,7 @@
     <resultMap id="baseResultMap" type="com.dangdang.ddframe.rdb.sharding.example.jdbc.entity.Order">
         <result column="order_id" property="orderId" jdbcType="BIGINT"/>
         <result column="user_id" property="userId" jdbcType="INTEGER"/>
-        <result column="status" property="status" jdbcType="CLOB"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
     </resultMap>
     
     <sql id="baseColumnList">
@@ -19,7 +19,7 @@
         )
         VALUES (
         #{userId,jdbcType=INTEGER},
-        #{status,jdbcType=CLOB}
+        #{status,jdbcType=VARCHAR}
         );
     </insert>
     
@@ -43,4 +43,28 @@
         <include refid="baseColumnList"/>
         FROM t_order
     </select>
+
+    <select id="selectTop" resultMap="baseResultMap">
+        SELECT top ${top}
+        <include refid="baseColumnList"/>
+        FROM t_order order by order_id
+    </select>
+
+
+    <select id="selectRownumber" resultMap="baseResultMap">
+        SELECT order_id
+        , user_id
+        , status
+        FROM (
+        SELECT ROW_NUMBER() OVER (ORDER BY user_id) AS Row
+        , order_id
+        , user_id
+        , status
+        FROM t_order
+        where user_id=10
+        ) AS t
+        WHERE Row &gt;= #{begin,jdbcType=INTEGER}
+        AND Row &lt;= #{end,jdbcType=INTEGER}
+    </select>
+
 </mapper>
